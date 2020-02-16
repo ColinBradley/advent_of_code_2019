@@ -1,2 +1,3 @@
-# advent_of_code_2019
-Blub
+# Advent Of Code 2019
+
+Just learning me some rust.
