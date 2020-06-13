@@ -9,6 +9,14 @@
 		},
 		{
 			"path": "day_4"
+		},
+		{
+			"path": "day_5"
 		}
-	]
+	],
+	"settings": {
+		"cSpell.words": [
+			"trunc"
+		]
+	}
 }
