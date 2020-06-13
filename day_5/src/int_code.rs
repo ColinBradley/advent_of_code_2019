@@ -46,7 +46,7 @@ pub fn run(mut data: Vec<i32>, input: i32) -> Vec<i32> {
                     pointer += 3;
                 }
             }
-            OpCode::LessThan(p1_mode, p2_mode, _) => {
+            OpCode::LessThan(p1_mode, p2_mode) => {
                 let p1 = get_value(&data, pointer + 1, p1_mode);
                 let p2 = get_value(&data, pointer + 2, p2_mode);
                 let p3 = *get_value(&data, pointer + 3, ParameterMode::Immediate) as usize;
@@ -54,7 +54,7 @@ pub fn run(mut data: Vec<i32>, input: i32) -> Vec<i32> {
                 data[p3] = if p1 < p2 { 1 } else { 0 };
                 pointer += 4;
             }
-            OpCode::Equals(p1_mode, p2_mode, _) => {
+            OpCode::Equals(p1_mode, p2_mode) => {
                 let p1 = get_value(&data, pointer + 1, p1_mode);
                 let p2 = get_value(&data, pointer + 2, p2_mode);
                 let p3 = *get_value(&data, pointer + 3, ParameterMode::Immediate) as usize;
@@ -77,7 +77,7 @@ fn get_value<'a>(data: &'a Vec<i32>, location: usize, mode: ParameterMode) -> &'
 }
 
 fn get_op(value: &i32) -> OpCode {
-    let ((p1, p2, p3), operation) = parse_operation(value);
+    let ((p1, p2, _), operation) = parse_operation(value);
 
     match operation {
         1 => OpCode::Add(p1.into(), p2.into()),
@@ -86,8 +86,8 @@ fn get_op(value: &i32) -> OpCode {
         4 => OpCode::Output(p1.into()),
         5 => OpCode::JumpIfTrue(p1.into(), p2.into()),
         6 => OpCode::JumpIfFalse(p1.into(), p2.into()),
-        7 => OpCode::LessThan(p1.into(), p2.into(), p3.into()),
-        8 => OpCode::Equals(p1.into(), p2.into(), p3.into()),
+        7 => OpCode::LessThan(p1.into(), p2.into()),
+        8 => OpCode::Equals(p1.into(), p2.into()),
         99 => OpCode::Halt,
         _ => panic!("unknown code"),
     }
@@ -110,8 +110,8 @@ enum OpCode {
     Output(ParameterMode),
     JumpIfTrue(ParameterMode, ParameterMode),
     JumpIfFalse(ParameterMode, ParameterMode),
-    LessThan(ParameterMode, ParameterMode, ParameterMode),
-    Equals(ParameterMode, ParameterMode, ParameterMode),
+    LessThan(ParameterMode, ParameterMode),
+    Equals(ParameterMode, ParameterMode),
     Halt,
 }
 enum ParameterMode {
