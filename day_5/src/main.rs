@@ -40,6 +40,6 @@ fn main() {
         226, 224, 1002, 223, 2, 223, 1006, 224, 674, 1001, 223, 1, 223, 4, 223, 99, 226,
     ];
 
-    let outputs = int_code::run(data, 1);
+    let outputs = int_code::run(data, 5);
     println!("{:?}", outputs);
 }
