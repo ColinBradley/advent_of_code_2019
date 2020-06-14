@@ -12,11 +12,15 @@
 		},
 		{
 			"path": "day_5"
+		},
+		{
+			"path": "day_6"
 		}
 	],
 	"settings": {
 		"cSpell.words": [
 			"trunc"
-		]
+		],
+		"rust-analyzer.inlayHints.enable": false
 	}
 }
