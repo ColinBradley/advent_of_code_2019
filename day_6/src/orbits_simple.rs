@@ -8,9 +8,9 @@ pub fn get_checksum(input: &str) -> u32 {
         let parent = parts.next().unwrap();
         let child = parts.next().unwrap();
 
-        let wat = objects.insert(child, parent);
-        if wat.is_some() {
-            panic!("Data corrupt");
+        let old_parent = objects.insert(child, parent);
+        if old_parent.is_some() {
+            panic!("Data corrupt - child has more than one parent");
         }
     }
 

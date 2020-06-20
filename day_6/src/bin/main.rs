@@ -2,10 +2,16 @@ use day_6::orbits;
 use day_6::orbits_simple;
 
 fn main() {
-    let result = orbits::get_checksum(INPUT);
-    let result_simple = orbits_simple::get_checksum(INPUT);
-    println!("Tree: {}", result);
-    println!("Simple: {}", result_simple);
+    let data = orbits::parse(INPUT);
+
+    let checksum = orbits::get_checksum(&data);
+    println!("Checksum: {}", checksum);
+
+    let transfers = orbits::get_transfers("YOU", "SAN", &data);
+    println!("Transfers: {}", transfers.unwrap());
+
+    let simple_checksum = orbits_simple::get_checksum(INPUT);
+    println!("Simple checksum: {}", simple_checksum);
 }
 
 const INPUT: &'static str = "WR4)TZN
