@@ -17,7 +17,7 @@ J)K
 K)L";
 
     c.bench_function("orbits::get_checksum", |b| {
-        b.iter(|| orbits::get_checksum(data))
+        b.iter(|| orbits::get_checksum(&orbits::parse(data)))
     });
     c.bench_function("orbits_simple::get_checksum", |b| {
         b.iter(|| orbits_simple::get_checksum(data))
