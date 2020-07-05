@@ -4,18 +4,25 @@ mod permutations;
 use crate::permutations::*;
 
 fn main() {
-    let amp_count = 5;
     let mut highest = std::i32::MIN;
 
-    for permutation in permutations(&(0..amp_count).collect()) {
-        let mut input = 0;
-        for phase in permutation {
-            let output = int_code::run(AMP_PROGRAM.to_vec(), vec![phase as i32, input].into_iter())
-                .into_iter()
-                .next()
-                .unwrap();
+    for permutation in permutations(&(5..=9).collect()) {
+        let mut amps: Vec<int_code::OpCodeMachine> = permutation
+            .iter()
+            .map(|phase| {
+                let mut amp = int_code::OpCodeMachine::new(AMP_PROGRAM.to_vec());
+                amp.with_input(phase.clone() as i32);
+                amp
+            })
+            .collect();
 
-            input = output;
+        let mut input = 0;
+        while !amps.last().unwrap().is_complete {
+            for amp in amps.iter_mut() {
+                if let Some(output) = amp.with_input(input).run() {
+                    input = output
+                }
+            }
         }
 
         if input > highest {

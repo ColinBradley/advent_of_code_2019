@@ -1,75 +1,99 @@
-pub fn run<I>(mut data: Vec<i32>, mut inputs: I) -> Vec<i32>
-where
-    I: Iterator<Item = i32>,
-{
-    let mut pointer = 0;
-    let mut outputs = Vec::<i32>::new();
+pub struct OpCodeMachine {
+    data: Vec<i32>,
+    inputs: Vec<i32>,
+    pointer: usize,
+    pub is_complete: bool,
+}
 
-    loop {
-        let op = data.get(pointer).map(|v| get_op(v)).unwrap();
-
-        match op {
-            OpCode::Add(p1_mode, p2_mode) => {
-                let p1 = get_value(&data, pointer + 1, p1_mode);
-                let p2 = get_value(&data, pointer + 2, p2_mode);
-                let p3 = data[pointer + 3];
-                data[p3 as usize] = p1 + p2;
-                pointer += 4;
-            }
-            OpCode::Multiply(p1_mode, p2_mode) => {
-                let p1 = get_value(&data, pointer + 1, p1_mode);
-                let p2 = get_value(&data, pointer + 2, p2_mode);
-                let p3 = data[pointer + 3];
-                data[p3 as usize] = p1 * p2;
-                pointer += 4;
-            }
-            OpCode::Input() => {
-                let address = data[pointer + 1] as usize;
-                data[address] = inputs.next().unwrap();
-                pointer += 2;
-            }
-            OpCode::Output(p1_mode) => {
-                let value = get_value(&data, pointer + 1, p1_mode).clone();
-                outputs.push(value);
-                pointer += 2;
-            }
-            OpCode::JumpIfTrue(p1_mode, p2_mode) => {
-                let p1 = get_value(&data, pointer + 1, p1_mode);
-                if *p1 == 0 {
-                    pointer += 3;
-                } else {
-                    pointer = *get_value(&data, pointer + 2, p2_mode) as usize;
-                }
-            }
-            OpCode::JumpIfFalse(p1_mode, p2_mode) => {
-                let p1 = get_value(&data, pointer + 1, p1_mode);
-                if *p1 == 0 {
-                    pointer = *get_value(&data, pointer + 2, p2_mode) as usize;
-                } else {
-                    pointer += 3;
-                }
-            }
-            OpCode::LessThan(p1_mode, p2_mode) => {
-                let p1 = get_value(&data, pointer + 1, p1_mode);
-                let p2 = get_value(&data, pointer + 2, p2_mode);
-                let p3 = *get_value(&data, pointer + 3, ParameterMode::Immediate) as usize;
-
-                data[p3] = if p1 < p2 { 1 } else { 0 };
-                pointer += 4;
-            }
-            OpCode::Equals(p1_mode, p2_mode) => {
-                let p1 = get_value(&data, pointer + 1, p1_mode);
-                let p2 = get_value(&data, pointer + 2, p2_mode);
-                let p3 = *get_value(&data, pointer + 3, ParameterMode::Immediate) as usize;
-
-                data[p3] = if p1 == p2 { 1 } else { 0 };
-                pointer += 4;
-            }
-            OpCode::Halt => break,
-        };
+impl OpCodeMachine {
+    pub fn new(data: Vec<i32>) -> OpCodeMachine {
+        OpCodeMachine {
+            data,
+            inputs: Vec::new(),
+            pointer: 0,
+            is_complete: false,
+        }
     }
 
-    outputs
+    pub fn with_input(&mut self, input: i32) -> &mut OpCodeMachine {
+        self.inputs.push(input);
+        self
+    }
+
+    pub fn run(&mut self) -> Option<i32> {
+        if self.is_complete {
+            return None;
+        }
+
+        loop {
+            let op = self.data.get(self.pointer).map(|v| get_op(v)).unwrap();
+
+            match op {
+                OpCode::Add(p1_mode, p2_mode) => {
+                    let p1 = get_value(&self.data, self.pointer + 1, p1_mode);
+                    let p2 = get_value(&self.data, self.pointer + 2, p2_mode);
+                    let p3 = self.data[self.pointer + 3];
+                    self.data[p3 as usize] = p1 + p2;
+                    self.pointer += 4;
+                }
+                OpCode::Multiply(p1_mode, p2_mode) => {
+                    let p1 = get_value(&self.data, self.pointer + 1, p1_mode);
+                    let p2 = get_value(&self.data, self.pointer + 2, p2_mode);
+                    let p3 = self.data[self.pointer + 3];
+                    self.data[p3 as usize] = p1 * p2;
+                    self.pointer += 4;
+                }
+                OpCode::Input() => {
+                    let address = self.data[self.pointer + 1] as usize;
+                    self.data[address] = self.inputs.remove(0);
+                    self.pointer += 2;
+                }
+                OpCode::Output(p1_mode) => {
+                    let value = get_value(&self.data, self.pointer + 1, p1_mode).clone();
+                    self.pointer += 2;
+                    return Some(value.clone());
+                }
+                OpCode::JumpIfTrue(p1_mode, p2_mode) => {
+                    let p1 = get_value(&self.data, self.pointer + 1, p1_mode);
+                    if *p1 == 0 {
+                        self.pointer += 3;
+                    } else {
+                        self.pointer = *get_value(&self.data, self.pointer + 2, p2_mode) as usize;
+                    }
+                }
+                OpCode::JumpIfFalse(p1_mode, p2_mode) => {
+                    let p1 = get_value(&self.data, self.pointer + 1, p1_mode);
+                    if *p1 == 0 {
+                        self.pointer = *get_value(&self.data, self.pointer + 2, p2_mode) as usize;
+                    } else {
+                        self.pointer += 3;
+                    }
+                }
+                OpCode::LessThan(p1_mode, p2_mode) => {
+                    let p1 = get_value(&self.data, self.pointer + 1, p1_mode);
+                    let p2 = get_value(&self.data, self.pointer + 2, p2_mode);
+                    let p3 =
+                        *get_value(&self.data, self.pointer + 3, ParameterMode::Immediate) as usize;
+
+                    self.data[p3] = if p1 < p2 { 1 } else { 0 };
+                    self.pointer += 4;
+                }
+                OpCode::Equals(p1_mode, p2_mode) => {
+                    let p1 = get_value(&self.data, self.pointer + 1, p1_mode);
+                    let p2 = get_value(&self.data, self.pointer + 2, p2_mode);
+                    let p3 =
+                        *get_value(&self.data, self.pointer + 3, ParameterMode::Immediate) as usize;
+
+                    self.data[p3] = if p1 == p2 { 1 } else { 0 };
+                    self.pointer += 4;
+                }
+                OpCode::Halt => {
+                    self.is_complete = true;
+                    return None;
+                }
+            };
+        }
+    }
 }
 
 fn get_value<'a>(data: &'a Vec<i32>, location: usize, mode: ParameterMode) -> &'a i32 {
@@ -151,56 +175,80 @@ mod tests {
 
         #[test]
         fn example_equal_8_position_mode_false() {
-            let data = EQUAL_TO_8_DATA_POSITION.to_vec();
-            assert_eq!(run(data, 5..), [0]);
+            let mut machine = OpCodeMachine::new(EQUAL_TO_8_DATA_POSITION.to_vec());
+            machine.with_input(5);
+
+            assert_eq!(machine.run(), Some(0));
+            assert_eq!(machine.run(), None);
         }
 
         #[test]
         fn example_equal_8_position_mode_true() {
-            let data = EQUAL_TO_8_DATA_POSITION.to_vec();
-            assert_eq!(run(data, 8..), [1]);
+            let mut machine = OpCodeMachine::new(EQUAL_TO_8_DATA_POSITION.to_vec());
+            machine.with_input(8);
+
+            assert_eq!(machine.run(), Some(1));
+            assert_eq!(machine.run(), None);
         }
 
         const EQUAL_TO_8_DATA_IMMEDIATE: &'static [i32] = &[3, 3, 1108, -1, 8, 3, 4, 3, 99];
 
         #[test]
         fn example_equal_8_immediate_mode_false() {
-            let data = EQUAL_TO_8_DATA_IMMEDIATE.to_vec();
-            assert_eq!(run(data, 5..), [0]);
+            let mut machine = OpCodeMachine::new(EQUAL_TO_8_DATA_IMMEDIATE.to_vec());
+            machine.with_input(5);
+
+            assert_eq!(machine.run(), Some(0));
+            assert_eq!(machine.run(), None);
         }
 
         #[test]
         fn example_equal_8_immediate_mode_true() {
-            let data = EQUAL_TO_8_DATA_IMMEDIATE.to_vec();
-            assert_eq!(run(data, 8..), [1]);
+            let mut machine = OpCodeMachine::new(EQUAL_TO_8_DATA_IMMEDIATE.to_vec());
+            machine.with_input(8);
+
+            assert_eq!(machine.run(), Some(1));
+            assert_eq!(machine.run(), None);
         }
 
         const LESS_THAN_8_DATA_POSITION: &'static [i32] = &[3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8];
 
         #[test]
         fn less_than_8_position_mode_false() {
-            let data = LESS_THAN_8_DATA_POSITION.to_vec();
-            assert_eq!(run(data, 10..), [0]);
+            let mut machine = OpCodeMachine::new(LESS_THAN_8_DATA_POSITION.to_vec());
+            machine.with_input(10);
+
+            assert_eq!(machine.run(), Some(0));
+            assert_eq!(machine.run(), None);
         }
 
         #[test]
         fn less_than_8_position_mode_true() {
-            let data = LESS_THAN_8_DATA_POSITION.to_vec();
-            assert_eq!(run(data, 5..), [1]);
+            let mut machine = OpCodeMachine::new(LESS_THAN_8_DATA_POSITION.to_vec());
+            machine.with_input(5);
+
+            assert_eq!(machine.run(), Some(1));
+            assert_eq!(machine.run(), None);
         }
 
         const LESS_THAN_8_DATA_IMMEDIATE: &'static [i32] = &[3, 3, 1107, -1, 8, 3, 4, 3, 99];
 
         #[test]
         fn less_than_8_immediate_mode_false() {
-            let data = LESS_THAN_8_DATA_IMMEDIATE.to_vec();
-            assert_eq!(run(data, 10..), [0]);
+            let mut machine = OpCodeMachine::new(LESS_THAN_8_DATA_IMMEDIATE.to_vec());
+            machine.with_input(10);
+
+            assert_eq!(machine.run(), Some(0));
+            assert_eq!(machine.run(), None);
         }
 
         #[test]
         fn less_than_8_immediate_mode_true() {
-            let data = LESS_THAN_8_DATA_IMMEDIATE.to_vec();
-            assert_eq!(run(data, 5..), [1]);
+            let mut machine = OpCodeMachine::new(LESS_THAN_8_DATA_IMMEDIATE.to_vec());
+            machine.with_input(5);
+
+            assert_eq!(machine.run(), Some(1));
+            assert_eq!(machine.run(), None);
         }
 
         const JUMP_DATA_POSITION: &'static [i32] =
@@ -208,8 +256,11 @@ mod tests {
 
         #[test]
         fn jump_0_position() {
-            let data = JUMP_DATA_POSITION.to_vec();
-            assert_eq!(run(data, 0..), [0]);
+            let mut machine = OpCodeMachine::new(JUMP_DATA_POSITION.to_vec());
+            machine.with_input(0);
+
+            assert_eq!(machine.run(), Some(0));
+            assert_eq!(machine.run(), None);
         }
 
         const JUMP_DATA_IMMEDIATE: &'static [i32] =
@@ -217,8 +268,11 @@ mod tests {
 
         #[test]
         fn jump_0_immediate() {
-            let data = JUMP_DATA_IMMEDIATE.to_vec();
-            assert_eq!(run(data, 0..), [0]);
+            let mut machine = OpCodeMachine::new(JUMP_DATA_IMMEDIATE.to_vec());
+            machine.with_input(0);
+
+            assert_eq!(machine.run(), Some(0));
+            assert_eq!(machine.run(), None);
         }
 
         const LARGE_EXAMPLE_DATA: &'static [i32] = &[
@@ -229,23 +283,29 @@ mod tests {
 
         #[test]
         fn large_example_input_less_than() {
-            let data = LARGE_EXAMPLE_DATA.to_vec();
+            let mut machine = OpCodeMachine::new(LARGE_EXAMPLE_DATA.to_vec());
+            machine.with_input(5);
 
-            assert_eq!(run(data, 5..), [999]);
+            assert_eq!(machine.run(), Some(999));
+            assert_eq!(machine.run(), None);
         }
 
         #[test]
         fn large_example_input_equal() {
-            let data = LARGE_EXAMPLE_DATA.to_vec();
+            let mut machine = OpCodeMachine::new(LARGE_EXAMPLE_DATA.to_vec());
+            machine.with_input(8);
 
-            assert_eq!(run(data, 8..), [1000]);
+            assert_eq!(machine.run(), Some(1000));
+            assert_eq!(machine.run(), None);
         }
 
         #[test]
         fn large_example_input_greater_than() {
-            let data = LARGE_EXAMPLE_DATA.to_vec();
+            let mut machine = OpCodeMachine::new(LARGE_EXAMPLE_DATA.to_vec());
+            machine.with_input(10);
 
-            assert_eq!(run(data, 10..), [1001]);
+            assert_eq!(machine.run(), Some(1001));
+            assert_eq!(machine.run(), None);
         }
     }
 }
