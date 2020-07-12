@@ -35,29 +35,68 @@ impl SpaceImageFormat {
         let start = layer_size * index;
         Ok(&self.data[start..start + layer_size])
     }
+
+    pub fn decode(&self) -> String {
+        let layer_count = self.layer_count();
+        let layer_size = self.layer_size();
+
+        let mut result = Vec::<String>::new();
+
+        for pixel_index in 0..layer_size {
+            result.push((|| {
+                for layer_index in 0..layer_count {
+                    let pixel_data = self.data[layer_index * layer_size + pixel_index];
+                    if pixel_data == 2 {
+                        continue;
+                    }
+
+                    return pixel_data.to_string();
+                }
+
+                String::from("2")
+            })());
+        }
+
+        let mut lines = result
+            .rchunks(self.width)
+            .map(|line| line.join(""))
+            .collect::<Vec<String>>();
+
+        lines.reverse();
+
+        lines.join("\n")
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const TEST_IMAGE: &str = "123456789012";
+    const TEST_IMAGE_DATA_1: &str = "123456789012";
 
     #[test]
     fn basic_layer_count() {
-        let image = SpaceImageFormat::parse(TEST_IMAGE, 3, 2);
+        let image = SpaceImageFormat::parse(TEST_IMAGE_DATA_1, 3, 2);
         assert_eq!(image.layer_count(), 2);
     }
 
     #[test]
     fn get_layer_in_range() {
-        let image = SpaceImageFormat::parse(TEST_IMAGE, 3, 2);
+        let image = SpaceImageFormat::parse(TEST_IMAGE_DATA_1, 3, 2);
         assert!(image.get_layer(0).is_ok());
     }
 
     #[test]
     fn get_layer_out_range() {
-        let image = SpaceImageFormat::parse(TEST_IMAGE, 3, 2);
+        let image = SpaceImageFormat::parse(TEST_IMAGE_DATA_1, 3, 2);
         assert!(image.get_layer(2).is_err());
+    }
+
+    const TEST_IMAGE_DATA_2: &str = "0222112222120000";
+
+    #[test]
+    fn decode() {
+        let image = SpaceImageFormat::parse(TEST_IMAGE_DATA_2, 2, 2);
+        assert_eq!(image.decode(), "01\n10");
     }
 }

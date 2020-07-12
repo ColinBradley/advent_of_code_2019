@@ -1,10 +1,22 @@
 mod space_image_format;
 use crate::space_image_format::*;
+use colored::*;
 
 fn main() {
     let image = get_image();
 
     println!("Image hash: {}", get_image_hash(&image));
+
+    for character in image.decode().chars() {
+        match character {
+            '0' => print!("{}", "0".black()),
+            '1' => print!("{}", "1".white()),
+            '\n' => print!("{}", "\n"),
+            _ => break,
+        }
+    }
+
+    print!("\n");
 }
 
 fn get_image_hash(image: &SpaceImageFormat) -> usize {
