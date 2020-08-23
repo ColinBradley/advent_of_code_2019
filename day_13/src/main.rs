@@ -1,24 +1,77 @@
 mod game;
 mod int_code;
 
+use std::{sync::mpsc, thread, time::Duration};
+
 use game::*;
 use int_code::*;
 
 fn main() {
-    let mut game = Game::new(OpCodeMachine::new(DATA.to_vec()));
+    let (tx, rx) = mpsc::channel();
 
-    game.run();
-    let screen = game.draw();
-    println!("{}", screen);
+    let mut game = Game::new(OpCodeMachine::new(DATA.to_vec(), || {
+        let mut input: Option<Input> = None;
 
-    println!(
-        "Block count: {}",
-        screen.chars().filter(|c| c == &'#').count()
-    );
+        while let Ok(input_msg) = rx.try_recv() {
+            input = Some(input_msg);
+        }
+
+        match input {
+            None => 0,
+            Some(Input::Left) => -1,
+            Some(Input::Right) => 1,
+        }
+    }));
+
+    thread::spawn(move || {
+        let term = console::Term::stdout();
+
+        loop {
+            if let Ok(k) = term.read_key() {
+                match k {
+                    console::Key::Char('a') => tx.send(Input::Left).unwrap(),
+                    console::Key::Char('d') => tx.send(Input::Right).unwrap(),
+                    _ => break,
+                }
+            }
+        }
+    });
+
+    let term = console::Term::stdout();
+    term.hide_cursor().unwrap();
+
+    loop {
+        game.run();
+        let screen = game.draw();
+
+        term.clear_screen().unwrap();
+
+        let mut index = 0;
+        for line in screen.split('\n') {
+            index += 1;
+            term.move_cursor_to(0, index).unwrap();
+            term.write_str(line).unwrap();
+        }
+
+        term.move_cursor_to(0, index + 1).unwrap();
+
+        term.write_str(&format!(
+            "Block count: {}",
+            screen.chars().filter(|c| c == &'#').count()
+        ))
+        .unwrap();
+
+        thread::sleep(Duration::from_millis(1000));
+    }
+}
+
+enum Input {
+    Left,
+    Right,
 }
 
 const DATA: [i64; 2618] = [
-    1, 380, 379, 385, 1008, 2617, 718741, 381, 1005, 381, 12, 99, 109, 2618, 1102, 1, 0, 383, 1102,
+    2, 380, 379, 385, 1008, 2617, 718741, 381, 1005, 381, 12, 99, 109, 2618, 1102, 1, 0, 383, 1102,
     0, 1, 382, 20101, 0, 382, 1, 21001, 383, 0, 2, 21102, 1, 37, 0, 1105, 1, 578, 4, 382, 4, 383,
     204, 1, 1001, 382, 1, 382, 1007, 382, 43, 381, 1005, 381, 22, 1001, 383, 1, 383, 1007, 383, 23,
     381, 1005, 381, 18, 1006, 385, 69, 99, 104, -1, 104, 0, 4, 386, 3, 384, 1007, 384, 0, 381,

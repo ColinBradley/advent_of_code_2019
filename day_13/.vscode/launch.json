@@ -14,7 +14,7 @@
                 ]
             },
             "program": "${cargo:program}",
-            "args": []
+            "args": [],
         },
         {
             "name": "Cargo test",

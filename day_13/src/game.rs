@@ -1,25 +1,46 @@
 use super::int_code::*;
 use std::collections::HashMap;
 
-pub struct Game {
+pub struct Game<F: Fn() -> i64> {
     screen: HashMap<Point, char>,
-    machine: OpCodeMachine,
+    pub machine: OpCodeMachine<F>,
+    pub score: i64,
 }
 
-impl Game {
-    pub fn new(machine: OpCodeMachine) -> Self {
+impl<F: Fn() -> i64> Game<F> {
+    pub fn new(machine: OpCodeMachine<F>) -> Self {
         Game {
             screen: HashMap::new(),
             machine,
+            score: 0,
         }
     }
 
     pub fn run(&mut self) {
-        self.screen.clear();
+        loop {
+            let y = if let Some(value) = self.machine.run() {
+                value
+            } else {
+                break;
+            };
 
-        while let (Some(y), Some(x), Some(tile_id)) =
-            (self.machine.run(), self.machine.run(), self.machine.run())
-        {
+            let x = if let Some(value) = self.machine.run() {
+                value
+            } else {
+                break;
+            };
+
+            let tile_id = if let Some(value) = self.machine.run() {
+                value
+            } else {
+                break;
+            };
+
+            if x < 0 || y < 0 {
+                self.score = tile_id;
+                continue;
+            }
+
             self.screen.insert(
                 Point {
                     x: x as u16,
@@ -27,6 +48,11 @@ impl Game {
                 },
                 tile_to_char(tile_id),
             );
+
+            if tile_id == 4 {
+                // Ball updated, release
+                break;
+            }
         }
     }
 
