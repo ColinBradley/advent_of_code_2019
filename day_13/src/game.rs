@@ -1,39 +1,82 @@
 use super::int_code::*;
-use std::collections::HashMap;
+use std::time::Duration;
+use std::{collections::HashMap, thread};
 
-pub struct Game<F: Fn() -> i64> {
+pub struct Game {
     screen: HashMap<Point, char>,
-    pub machine: OpCodeMachine<F>,
+    pub machine: OpCodeMachine,
     pub score: i64,
+    ball_x: i64,
+    paddle_x: i64,
 }
 
-impl<F: Fn() -> i64> Game<F> {
-    pub fn new(machine: OpCodeMachine<F>) -> Self {
+enum GameTickResult {
+    Halt,
+    Draw,
+    InputRequired,
+}
+
+impl Game {
+    pub fn new(data: Vec<i64>) -> Self {
         Game {
             screen: HashMap::new(),
-            machine,
+            machine: OpCodeMachine::new(data),
             score: 0,
+            ball_x: 0,
+            paddle_x: 0,
         }
     }
 
     pub fn run(&mut self) {
         loop {
-            let y = if let Some(value) = self.machine.run() {
-                value
-            } else {
-                break;
+            match self.run_core() {
+                GameTickResult::Halt => break,
+                GameTickResult::InputRequired => {
+                    self.machine.input(self.get_input());
+                }
+                GameTickResult::Draw => {
+                    let screen = self.draw();
+
+                    println!("{}", screen);
+                    println!(
+                        "Score: {}, Block count: {}",
+                        self.score,
+                        screen.chars().filter(|c| c == &'#').count()
+                    );
+
+                    thread::sleep(Duration::from_millis(10));
+                }
+            }
+        }
+
+        let screen = self.draw();
+
+        println!("{}", screen);
+        println!(
+            "Score: {}, Block count: {}",
+            self.score,
+            screen.chars().filter(|c| c == &'#').count()
+        );
+    }
+
+    fn run_core(&mut self) -> GameTickResult {
+        loop {
+            let x = match self.machine.run() {
+                MachineResult::Output(value) => value,
+                MachineResult::InputRequired => return GameTickResult::InputRequired,
+                MachineResult::Halt => return GameTickResult::Halt,
             };
 
-            let x = if let Some(value) = self.machine.run() {
-                value
-            } else {
-                break;
+            let y = match self.machine.run() {
+                MachineResult::Output(value) => value,
+                MachineResult::InputRequired => return GameTickResult::InputRequired,
+                MachineResult::Halt => return GameTickResult::Halt,
             };
 
-            let tile_id = if let Some(value) = self.machine.run() {
-                value
-            } else {
-                break;
+            let tile_id = match self.machine.run() {
+                MachineResult::Output(value) => value,
+                MachineResult::InputRequired => return GameTickResult::InputRequired,
+                MachineResult::Halt => return GameTickResult::Halt,
             };
 
             if x < 0 || y < 0 {
@@ -49,10 +92,13 @@ impl<F: Fn() -> i64> Game<F> {
                 tile_to_char(tile_id),
             );
 
-            if tile_id == 4 {
-                // Ball updated, release
-                break;
-            }
+            match tile_id {
+                3 => self.paddle_x = x,
+                4 => self.ball_x = x,
+                _ => continue,
+            };
+
+            return GameTickResult::Draw;
         }
     }
 
@@ -63,8 +109,8 @@ impl<F: Fn() -> i64> Game<F> {
             (max_point.x as usize * max_point.y as usize) + max_point.y as usize,
         );
 
-        for x in 0..=max_point.x {
-            for y in 0..=max_point.y {
+        for y in 0..=max_point.y {
+            for x in 0..=max_point.x {
                 output.push(self.get_char(&Point { x, y }).clone());
             }
 
@@ -72,6 +118,10 @@ impl<F: Fn() -> i64> Game<F> {
         }
 
         output
+    }
+
+    fn get_input(&self) -> i64 {
+        (self.ball_x - self.paddle_x).signum()
     }
 
     fn get_char(&self, location: &Point) -> &char {

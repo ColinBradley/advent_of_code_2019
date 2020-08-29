@@ -1,73 +1,11 @@
 mod game;
 mod int_code;
 
-use std::{sync::mpsc, thread, time::Duration};
-
 use game::*;
-use int_code::*;
 
 fn main() {
-    let (tx, rx) = mpsc::channel();
-
-    let mut game = Game::new(OpCodeMachine::new(DATA.to_vec(), || {
-        let mut input: Option<Input> = None;
-
-        while let Ok(input_msg) = rx.try_recv() {
-            input = Some(input_msg);
-        }
-
-        match input {
-            None => 0,
-            Some(Input::Left) => -1,
-            Some(Input::Right) => 1,
-        }
-    }));
-
-    thread::spawn(move || {
-        let term = console::Term::stdout();
-
-        loop {
-            if let Ok(k) = term.read_key() {
-                match k {
-                    console::Key::Char('a') => tx.send(Input::Left).unwrap(),
-                    console::Key::Char('d') => tx.send(Input::Right).unwrap(),
-                    _ => break,
-                }
-            }
-        }
-    });
-
-    let term = console::Term::stdout();
-    term.hide_cursor().unwrap();
-
-    loop {
-        game.run();
-        let screen = game.draw();
-
-        term.clear_screen().unwrap();
-
-        let mut index = 0;
-        for line in screen.split('\n') {
-            index += 1;
-            term.move_cursor_to(0, index).unwrap();
-            term.write_str(line).unwrap();
-        }
-
-        term.move_cursor_to(0, index + 1).unwrap();
-
-        term.write_str(&format!(
-            "Block count: {}",
-            screen.chars().filter(|c| c == &'#').count()
-        ))
-        .unwrap();
-
-        thread::sleep(Duration::from_millis(1000));
-    }
-}
-
-enum Input {
-    Left,
-    Right,
+    let mut game = Game::new(DATA.to_vec());
+    game.run();
 }
 
 const DATA: [i64; 2618] = [
