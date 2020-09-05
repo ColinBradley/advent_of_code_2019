@@ -9,7 +9,7 @@ pub struct Reaction {
 
 pub struct ReactionChemical {
     pub id: Compound,
-    pub quantity: u32,
+    pub quantity: u64,
 }
 
 #[derive(Clone, Eq, PartialEq, Hash)]
@@ -37,7 +37,7 @@ impl FromStr for ReactionChemical {
                     right => Compound::Other(String::from(right)),
                 },
                 quantity: left
-                    .parse::<u32>()
+                    .parse::<u64>()
                     .or_else(|e| Err(ChemicalParseError::QuantityError(e)))?,
             }),
             _ => Err(ChemicalParseError::LineError(String::from(source))),
@@ -72,10 +72,10 @@ pub fn parse_reactions(source: &str) -> Result<HashMap<Compound, Reaction>, Chem
 
 pub fn get_ore_required_count(
     reactions_by_output_id: &HashMap<Compound, Reaction>,
-    compound_cache: &mut HashMap<Compound, u32>,
+    compound_cache: &mut HashMap<Compound, u64>,
     reaction: &Reaction,
-    amount_required: u32,
-) -> u32 {
+    amount_required: u64,
+) -> u64 {
     let cache_amount = compound_cache
         .entry(reaction.output.id.clone())
         .or_insert(0);
@@ -90,11 +90,11 @@ pub fn get_ore_required_count(
     let amount_required = amount_required - *cache_amount;
     *cache_amount = 0;
 
-    let quantity_adjust = (amount_required as f64 / reaction.output.quantity as f64).ceil() as u32;
+    let quantity_adjust = (amount_required as f64 / reaction.output.quantity as f64).ceil() as u64;
 
-    let excess = (reaction.output.quantity * quantity_adjust) as i32 - amount_required as i32;
+    let excess = (reaction.output.quantity * quantity_adjust) as i64 - amount_required as i64;
     if excess > 0 {
-        *cache_amount = excess as u32;
+        *cache_amount = excess as u64;
     }
 
     if let [ReactionChemical {
@@ -112,16 +112,48 @@ pub fn get_ore_required_count(
         .iter()
         .map(|c| {
             let reaction = reactions_by_output_id.get(&c.id).unwrap();
-            let ore = get_ore_required_count(
+            get_ore_required_count(
                 reactions_by_output_id,
                 compound_cache,
                 reaction,
                 c.quantity * quantity_adjust,
-            );
-
-            ore + 0
+            )
         })
         .sum()
+}
+
+pub fn get_fuel_from_ore(
+    ore_count: u64,
+    reactions_by_output_id: &HashMap<Compound, Reaction>,
+    ore_per_fuel: u64,
+) -> u64 {
+    let fuel_reaction = reactions_by_output_id.get(&Compound::Fuel).unwrap();
+    let mut chemical_cache = HashMap::new();
+    let mut ore_count = ore_count;
+    let mut fuel_created_count = 0;
+
+    let mut fuel_guess = ore_count / ore_per_fuel;
+    loop {
+        let ore_required = get_ore_required_count(
+            &reactions_by_output_id,
+            &mut chemical_cache,
+            fuel_reaction,
+            fuel_guess,
+        );
+
+        if ore_required >= ore_count {
+            if fuel_guess == 1 {
+                break fuel_created_count;
+            }
+
+            // Over shot with fuel guess
+            fuel_guess = fuel_guess / 2;
+            continue;
+        }
+
+        fuel_created_count += fuel_guess;
+        ore_count -= ore_required;
+    }
 }
 
 #[cfg(test)]
