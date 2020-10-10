@@ -10,7 +10,7 @@
             "request": "launch",
             "cargo": {
                 "args": [
-                    "run"
+                    "build"
                 ]
             },
             "program": "${cargo:program}",

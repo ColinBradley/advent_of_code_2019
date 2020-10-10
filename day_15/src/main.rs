@@ -1,11 +1,51 @@
+use std::collections::HashMap;
+
+use crate::path_finder::Location;
+
 mod int_code;
 mod path_finder;
 
 fn main() {
     let machine = int_code::OpCodeMachine::new(INPUT.to_vec());
-    let result = path_finder::solve(machine);
-    println!("End found in {} movements", result.len() - 1);
-    println!("{:?}", result);
+    let (oxygen_path, longest_path, map) = path_finder::solve(machine);
+    println!("End found in {} movements", oxygen_path.unwrap().len() - 1);
+    println!("Longest path in {} movements", longest_path.len() - 1);
+
+    print_map(map, longest_path);
+}
+
+fn print_map(map: HashMap<Location, char>, longest_path: Vec<Location>) {
+    let mut lowest = Location { x: 0, y: 0 };
+    let mut highest = Location { x: 0, y: 0 };
+
+    for point in map.keys() {
+        if point.x > highest.x {
+            highest.x = point.x;
+        } else if point.x < lowest.x {
+            lowest.x = point.x;
+        }
+
+        if point.y > highest.y {
+            highest.y = point.y;
+        } else if point.y < lowest.y {
+            lowest.y = point.y;
+        }
+    }
+
+    for y in lowest.y..=highest.y {
+        let line = (lowest.x..=highest.x)
+            .map(|x| {
+                let location = Location { x, y };
+
+                if longest_path.iter().position(|l| l.eq(&location)).is_some() {
+                    return &'x';
+                }
+
+                map.get(&location).unwrap_or(&' ')
+            })
+            .collect::<String>();
+        println!("{}", line);
+    }
 }
 
 const INPUT: [i64; 1045] = [

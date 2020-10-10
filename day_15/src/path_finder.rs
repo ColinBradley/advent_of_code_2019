@@ -1,25 +1,12 @@
 use super::int_code::MachineResult;
 use super::int_code::OpCodeMachine;
 
-use std::collections::HashSet;
-use std::rc::Rc;
-
-struct Node {
-    node_type: NodeType,
-    location: Location,
-    connections: [Option<Rc<Node>>; 4],
-}
-
-enum NodeType {
-    Clear,
-    Wall,
-    Oxygen,
-}
+use std::collections::HashMap;
 
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub struct Location {
-    x: i64,
-    y: i64,
+    pub x: i64,
+    pub y: i64,
 }
 
 #[derive(Copy, Clone)]
@@ -47,49 +34,49 @@ impl From<i64> for DroneStatusCodes {
     }
 }
 
-impl Node {
-    pub fn new(location: Location, node_type: NodeType) -> Self {
-        Self {
-            node_type,
-            location,
-            connections: [None, None, None, None],
-        }
-    }
-}
-
 struct PathFinder {
     trail: Vec<Location>,
     machine: OpCodeMachine,
 }
 
-pub fn solve(initial_machine: OpCodeMachine) -> Vec<Location> {
+pub fn solve(
+    initial_machine: OpCodeMachine,
+) -> (
+    Option<Vec<Location>>,
+    Vec<Location>,
+    HashMap<Location, char>,
+) {
     let start = PathFinder {
         trail: vec![Location { x: 0, y: 0 }],
         machine: initial_machine,
     };
 
+    let mut oxygen_path: Option<Vec<Location>> = None;
+    let mut last_path = start.trail.clone();
+
     let mut active_paths = vec![start];
-    let mut visited_locations = HashSet::<Location>::new();
+    let mut visited_locations = HashMap::<Location, char>::new();
+    visited_locations.insert(Location { x: 0, y: 0 }, 'S');
 
     loop {
         let mut new_paths = Vec::<PathFinder>::new();
         for path in active_paths.drain(..) {
             let start_location = path.trail.last().unwrap();
 
-            for connection in &[
+            for direction in &[
                 Movement::North,
                 Movement::South,
                 Movement::East,
                 Movement::West,
             ] {
-                let new_location = get_location(start_location, connection);
+                let new_location = get_location(start_location, direction);
 
-                if !visited_locations.insert(new_location.clone()) {
+                if visited_locations.contains_key(&new_location) {
                     continue;
                 }
 
                 let mut new_machine = path.machine.clone();
-                new_machine.input(*connection as i64);
+                new_machine.input(*direction as i64);
 
                 let move_result = match new_machine.run() {
                     MachineResult::Halt => panic!("The never ending, ended?"),
@@ -98,17 +85,28 @@ pub fn solve(initial_machine: OpCodeMachine) -> Vec<Location> {
                 };
 
                 let is_on_oxygen = match move_result {
-                    DroneStatusCodes::HitWall => continue,
-                    DroneStatusCodes::Moved => false,
-                    DroneStatusCodes::OnOxygen => true,
+                    DroneStatusCodes::HitWall => {
+                        visited_locations.insert(new_location, '#');
+                        continue;
+                    }
+                    DroneStatusCodes::Moved => {
+                        visited_locations.insert(new_location.clone(), '.');
+                        false
+                    }
+                    DroneStatusCodes::OnOxygen => {
+                        visited_locations.insert(new_location.clone(), 'O');
+                        true
+                    }
                 };
 
                 let mut new_trail = path.trail.clone();
                 new_trail.push(new_location);
 
                 if is_on_oxygen {
-                    return new_trail;
+                    oxygen_path = Some(new_trail.clone());
                 }
+
+                last_path = new_trail.clone();
 
                 new_paths.push(PathFinder {
                     trail: new_trail,
@@ -118,11 +116,13 @@ pub fn solve(initial_machine: OpCodeMachine) -> Vec<Location> {
         }
 
         if new_paths.len() == 0 {
-            panic!("There is no end");
+            break;
         }
 
         active_paths.extend(new_paths.drain(..));
     }
+
+    (oxygen_path, last_path, visited_locations)
 }
 
 const fn get_location(start: &Location, movement: &Movement) -> Location {
