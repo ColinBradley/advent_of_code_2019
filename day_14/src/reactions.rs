@@ -185,7 +185,7 @@ mod tests {
         test_core(include_str!("./test_data/5"), 2210736);
     }
 
-    fn test_core(source: &str, expected_ore_count: u32) {
+    fn test_core(source: &str, expected_ore_count: u64) {
         let reactions = parse_reactions(source).unwrap();
         let fuel = reactions.get(&Compound::Fuel).unwrap();
         let result = get_ore_required_count(&reactions, &mut HashMap::new(), fuel, 1);

@@ -6,6 +6,7 @@ pub struct OpCodeMachine {
     pub is_complete: bool,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum MachineResult {
     Halt,
     InputRequired,
@@ -241,16 +242,16 @@ mod tests {
         fn example_equal_8_position_mode_false() {
             let mut machine = OpCodeMachine::new(EQUAL_TO_8_DATA_POSITION.to_vec()).with_input(5);
 
-            assert_eq!(machine.run(), Some(0));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(0));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         #[test]
         fn example_equal_8_position_mode_true() {
             let mut machine = OpCodeMachine::new(EQUAL_TO_8_DATA_POSITION.to_vec()).with_input(8);
 
-            assert_eq!(machine.run(), Some(1));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(1));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         const EQUAL_TO_8_DATA_IMMEDIATE: &'static [i64] = &[3, 3, 1108, -1, 8, 3, 4, 3, 99];
@@ -259,16 +260,16 @@ mod tests {
         fn example_equal_8_immediate_mode_false() {
             let mut machine = OpCodeMachine::new(EQUAL_TO_8_DATA_IMMEDIATE.to_vec()).with_input(5);
 
-            assert_eq!(machine.run(), Some(0));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(0));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         #[test]
         fn example_equal_8_immediate_mode_true() {
             let mut machine = OpCodeMachine::new(EQUAL_TO_8_DATA_IMMEDIATE.to_vec()).with_input(8);
 
-            assert_eq!(machine.run(), Some(1));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(1));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         const LESS_THAN_8_DATA_POSITION: &'static [i64] = &[3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8];
@@ -277,16 +278,16 @@ mod tests {
         fn less_than_8_position_mode_false() {
             let mut machine = OpCodeMachine::new(LESS_THAN_8_DATA_POSITION.to_vec()).with_input(10);
 
-            assert_eq!(machine.run(), Some(0));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(0));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         #[test]
         fn less_than_8_position_mode_true() {
             let mut machine = OpCodeMachine::new(LESS_THAN_8_DATA_POSITION.to_vec()).with_input(5);
 
-            assert_eq!(machine.run(), Some(1));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(1));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         const LESS_THAN_8_DATA_IMMEDIATE: &'static [i64] = &[3, 3, 1107, -1, 8, 3, 4, 3, 99];
@@ -296,16 +297,16 @@ mod tests {
             let mut machine =
                 OpCodeMachine::new(LESS_THAN_8_DATA_IMMEDIATE.to_vec()).with_input(10);
 
-            assert_eq!(machine.run(), Some(0));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(0));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         #[test]
         fn less_than_8_immediate_mode_true() {
             let mut machine = OpCodeMachine::new(LESS_THAN_8_DATA_IMMEDIATE.to_vec()).with_input(5);
 
-            assert_eq!(machine.run(), Some(1));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(1));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         #[test]
@@ -315,8 +316,8 @@ mod tests {
             ])
             .with_input(0);
 
-            assert_eq!(machine.run(), Some(0));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(0));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         #[test]
@@ -325,8 +326,8 @@ mod tests {
                 OpCodeMachine::new(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1])
                     .with_input(0);
 
-            assert_eq!(machine.run(), Some(0));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(0));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         const LARGE_EXAMPLE_DATA: &'static [i64] = &[
@@ -339,30 +340,30 @@ mod tests {
         fn large_example_input_less_than() {
             let mut machine = OpCodeMachine::new(LARGE_EXAMPLE_DATA.to_vec()).with_input(5);
 
-            assert_eq!(machine.run(), Some(999));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(999));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         #[test]
         fn large_example_input_equal() {
             let mut machine = OpCodeMachine::new(LARGE_EXAMPLE_DATA.to_vec()).with_input(8);
 
-            assert_eq!(machine.run(), Some(1000));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(1000));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         #[test]
         fn large_example_input_greater_than() {
             let mut machine = OpCodeMachine::new(LARGE_EXAMPLE_DATA.to_vec()).with_input(10);
 
-            assert_eq!(machine.run(), Some(1001));
-            assert_eq!(machine.run(), None);
+            assert_eq!(machine.run(), MachineResult::Output(1001));
+            assert_eq!(machine.run(), MachineResult::Halt);
         }
 
         #[test]
         fn large_value_support_example() {
             let mut machine = OpCodeMachine::new(vec![104, 1125899906842624, 99]);
-            assert_eq!(machine.run(), Some(1125899906842624));
+            assert_eq!(machine.run(), MachineResult::Output(1125899906842624));
         }
 
         #[test]
@@ -373,62 +374,62 @@ mod tests {
             let mut machine = OpCodeMachine::new(source.clone());
 
             for value in source.iter() {
-                assert_eq!(machine.run(), Some(*value));
+                assert_eq!(machine.run(), MachineResult::Output(*value));
             }
         }
 
         #[test]
         fn sixteen_digit_output_example() {
             let mut machine = OpCodeMachine::new(vec![1102, 34915192, 34915192, 7, 4, 7, 99, 0]);
-            assert_eq!(machine.run(), Some(1219070632396864));
+            assert_eq!(machine.run(), MachineResult::Output(1219070632396864));
         }
 
         #[test]
         fn extra_1_example() {
             let mut machine = OpCodeMachine::new(vec![109, -1, 4, 1, 99]);
-            assert_eq!(machine.run(), Some(-1));
+            assert_eq!(machine.run(), MachineResult::Output(-1));
         }
 
         #[test]
         fn extra_2_example() {
             let mut machine = OpCodeMachine::new(vec![109, -1, 104, 1, 99]);
-            assert_eq!(machine.run(), Some(1));
+            assert_eq!(machine.run(), MachineResult::Output(1));
         }
 
         #[test]
         fn extra_3_example() {
             let mut machine = OpCodeMachine::new(vec![109, -1, 204, 1, 99]);
-            assert_eq!(machine.run(), Some(109));
+            assert_eq!(machine.run(), MachineResult::Output(109));
         }
 
         #[test]
         fn extra_4_example() {
             let mut machine = OpCodeMachine::new(vec![109, 1, 9, 2, 204, -6, 99]);
-            assert_eq!(machine.run(), Some(204));
+            assert_eq!(machine.run(), MachineResult::Output(204));
         }
 
         #[test]
         fn extra_5_example() {
             let mut machine = OpCodeMachine::new(vec![109, 1, 109, 9, 204, -6, 99]);
-            assert_eq!(machine.run(), Some(204));
+            assert_eq!(machine.run(), MachineResult::Output(204));
         }
 
         #[test]
         fn extra_6_example() {
             let mut machine = OpCodeMachine::new(vec![109, 1, 209, -1, 204, -106, 99]);
-            assert_eq!(machine.run(), Some(204));
+            assert_eq!(machine.run(), MachineResult::Output(204));
         }
 
         #[test]
         fn extra_7_example() {
             let mut machine = OpCodeMachine::new(vec![109, 1, 3, 3, 204, 2, 99]).with_input(42);
-            assert_eq!(machine.run(), Some(42));
+            assert_eq!(machine.run(), MachineResult::Output(42));
         }
 
         #[test]
         fn extra_8_example() {
             let mut machine = OpCodeMachine::new(vec![109, 1, 203, 2, 204, 2, 99]).with_input(42);
-            assert_eq!(machine.run(), Some(42));
+            assert_eq!(machine.run(), MachineResult::Output(42));
         }
     }
 }
